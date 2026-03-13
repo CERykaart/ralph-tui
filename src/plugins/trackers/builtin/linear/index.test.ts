@@ -758,4 +758,56 @@ describe('LinearTrackerPlugin', () => {
       expect(tasks[0].id).toBe('ENG-10');
     });
   });
+
+  describe('getPrdContext', () => {
+    test('returns null when no epicId set', async () => {
+      const plugin = new LinearTrackerPlugin();
+      await plugin.initialize({ apiKey: 'test-key' });
+      const context = await plugin.getPrdContext();
+      expect(context).toBeNull();
+    });
+
+    test('returns PRD context from epic issue', async () => {
+      mockResponses.getIssue = (idOrKey: string) =>
+        createMockIssue({
+          id: 'uuid-epic',
+          identifier: idOrKey,
+          title: 'Epic Title',
+          description: 'Epic description text',
+        });
+
+      const doneChild = createMockIssue({
+        id: 'uuid-done', identifier: 'ENG-10', title: 'Done',
+        stateType: 'completed', parentIdentifier: 'ENG-1',
+      });
+      const openChild = createMockIssue({
+        id: 'uuid-open', identifier: 'ENG-11', title: 'Open',
+        stateType: 'unstarted', parentIdentifier: 'ENG-1',
+      });
+
+      mockResponses.getChildIssues = () => [doneChild, openChild];
+
+      const plugin = await createInitializedPlugin();
+      const context = await plugin.getPrdContext();
+
+      expect(context).not.toBeNull();
+      expect(context!.name).toBe('Epic Title');
+      expect(context!.description).toBe('Epic description text');
+      expect(context!.totalCount).toBe(2);
+      expect(context!.completedCount).toBe(1);
+    });
+
+    test('returns null on error', async () => {
+      // After initialization, make getIssue fail for the getPrdContext call
+      const plugin = await createInitializedPlugin();
+
+      // Now make subsequent getIssue calls fail
+      mockResponses.getIssue = () => {
+        throw new Error('API failure');
+      };
+
+      const context = await plugin.getPrdContext();
+      expect(context).toBeNull();
+    });
+  });
 });
