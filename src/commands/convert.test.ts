@@ -84,6 +84,26 @@ describe('parseConvertArgs', () => {
       expect(result!.parent).toBe('a1b2c3d4-e5f6-7890-abcd-ef1234567890');
     });
 
+    test('rejects --team with missing value (next token is a flag)', () => {
+      const result = parseConvertArgs(['--to', 'linear', '--team', '--project', 'input.md']);
+      expect(result).toBeNull();
+    });
+
+    test('rejects --team with no subsequent arg', () => {
+      const result = parseConvertArgs(['--to', 'linear', '--team']);
+      expect(result).toBeNull();
+    });
+
+    test('rejects --project with missing value (next token is a flag)', () => {
+      const result = parseConvertArgs(['--to', 'linear', '--team', 'ENG', '--project', '--parent', 'input.md']);
+      expect(result).toBeNull();
+    });
+
+    test('rejects --parent with missing value (next token is a flag)', () => {
+      const result = parseConvertArgs(['--to', 'linear', '--team', 'ENG', '--parent', '--verbose', 'input.md']);
+      expect(result).toBeNull();
+    });
+
     test('--team not required for non-linear formats', () => {
       const result = parseConvertArgs(['--to', 'json', 'input.md']);
       expect(result).not.toBeNull();

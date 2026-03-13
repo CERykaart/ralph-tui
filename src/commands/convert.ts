@@ -99,17 +99,47 @@ export function parseConvertArgs(args: string[]): ConvertArgs | null {
         return null;
       }
     } else if (arg === '--output' || arg === '-o') {
+      const val = args[i + 1];
+      if (!val || val.startsWith('-')) {
+        console.error(`Error: ${arg} requires a value`);
+        return null;
+      }
       output = args[++i];
     } else if (arg === '--branch' || arg === '-b') {
+      const val = args[i + 1];
+      if (!val || val.startsWith('-')) {
+        console.error(`Error: ${arg} requires a value`);
+        return null;
+      }
       branch = args[++i];
     } else if (arg === '--labels' || arg === '-l') {
+      const val = args[i + 1];
+      if (!val || val.startsWith('-')) {
+        console.error(`Error: ${arg} requires a value`);
+        return null;
+      }
       const labelsStr = args[++i];
       labels = labelsStr ? labelsStr.split(',').map((l) => l.trim()).filter((l) => l.length > 0) : [];
     } else if (arg === '--team') {
+      const val = args[i + 1];
+      if (!val || val.startsWith('-')) {
+        console.error('Error: --team requires a team key (e.g., --team ENG)');
+        return null;
+      }
       team = args[++i];
     } else if (arg === '--project') {
+      const val = args[i + 1];
+      if (!val || val.startsWith('-')) {
+        console.error('Error: --project requires a project name or ID');
+        return null;
+      }
       project = args[++i];
     } else if (arg === '--parent') {
+      const val = args[i + 1];
+      if (!val || val.startsWith('-')) {
+        console.error('Error: --parent requires an issue key or UUID');
+        return null;
+      }
       parent = args[++i];
     } else if (arg === '--force' || arg === '-f') {
       force = true;
@@ -701,7 +731,11 @@ export async function executeLinearConversion(
   parsed: import('../prd/parser.js').ParsedPrd,
   args: ConvertArgs
 ): Promise<void> {
-  const teamKey = args.team!;
+  if (!args.team) {
+    printError('executeLinearConversion: --team is required but was not provided');
+    process.exit(1);
+  }
+  const teamKey = args.team;
 
   // Create Linear client (uses LINEAR_API_KEY env var or config apiKey)
   let client: RalphLinearClient;

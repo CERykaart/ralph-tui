@@ -75,24 +75,40 @@ export function buildStoryIssueBody(params: StoryBodyParams): string {
 }
 
 /**
+ * Known Ralph section headings. Only these H2s start new sections;
+ * other H2s inside descriptions are treated as regular content.
+ */
+const RALPH_HEADINGS = new Set([
+  'ralph metadata',
+  'description',
+  'acceptance criteria',
+  'test plan',
+]);
+
+/**
  * Split markdown text into sections keyed by their `## Heading` title.
+ * Only headings matching known Ralph sections start a new section.
  * Content before the first heading is keyed as empty string.
  */
 function splitSections(body: string): Map<string, string> {
+  const normalized = body.replace(/\r\n/g, '\n');
   const sections = new Map<string, string>();
   const headingPattern = /^## (.+)$/;
   let currentHeading = '';
   let currentLines: string[] = [];
 
-  for (const line of body.split('\n')) {
+  for (const line of normalized.split('\n')) {
     const match = headingPattern.exec(line);
     if (match) {
-      sections.set(currentHeading, currentLines.join('\n').trim());
-      currentHeading = match[1].trim();
-      currentLines = [];
-    } else {
-      currentLines.push(line);
+      const heading = match[1].trim();
+      if (RALPH_HEADINGS.has(heading.toLowerCase())) {
+        sections.set(currentHeading, currentLines.join('\n').trim());
+        currentHeading = heading;
+        currentLines = [];
+        continue;
+      }
     }
+    currentLines.push(line);
   }
 
   sections.set(currentHeading, currentLines.join('\n').trim());

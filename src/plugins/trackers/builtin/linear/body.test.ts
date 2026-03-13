@@ -284,6 +284,51 @@ describe('parseStoryIssueBody', () => {
   });
 });
 
+describe('splitSections robustness', () => {
+  test('preserves H2 headings inside description that are not Ralph sections', () => {
+    const body = [
+      '## Ralph Metadata',
+      '- **Story ID:** US-050',
+      '- **Ralph Priority:** 2',
+      '',
+      '## Description',
+      'Implement the feature.',
+      '',
+      '## Implementation Notes',
+      'This is an internal heading and should stay in description.',
+      '',
+      '## Acceptance Criteria',
+      '- [ ] Works',
+    ].join('\n');
+
+    const parsed = parseStoryIssueBody(body);
+    expect(parsed.storyId).toBe('US-050');
+    expect(parsed.description).toContain('Implement the feature.');
+    expect(parsed.description).toContain('## Implementation Notes');
+    expect(parsed.description).toContain('This is an internal heading');
+    expect(parsed.acceptanceCriteria).toEqual(['Works']);
+  });
+
+  test('handles CRLF line endings', () => {
+    const body =
+      '## Ralph Metadata\r\n' +
+      '- **Story ID:** US-051\r\n' +
+      '- **Ralph Priority:** 1\r\n' +
+      '\r\n' +
+      '## Description\r\n' +
+      'CRLF description.\r\n' +
+      '\r\n' +
+      '## Acceptance Criteria\r\n' +
+      '- [ ] Passes\r\n';
+
+    const parsed = parseStoryIssueBody(body);
+    expect(parsed.storyId).toBe('US-051');
+    expect(parsed.ralphPriority).toBe(1);
+    expect(parsed.description).toBe('CRLF description.');
+    expect(parsed.acceptanceCriteria).toEqual(['Passes']);
+  });
+});
+
 describe('DEFAULT_RALPH_PRIORITY', () => {
   test('is 3 (medium)', () => {
     expect(DEFAULT_RALPH_PRIORITY).toBe(3);

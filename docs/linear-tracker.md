@@ -89,7 +89,7 @@ The `--epic` flag is required for the Linear tracker in MVP. It accepts either a
 
 PRD story priorities are preserved as unbounded integers in the issue body metadata (`Ralph Priority`). These are mapped to Linear's coarse 0-4 scale for compatibility:
 
-```
+```text
 coarse_priority = min(4, max(0, ralph_priority - 1))
 ```
 

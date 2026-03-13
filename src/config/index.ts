@@ -747,11 +747,19 @@ export async function validateConfig(
   }
 
   if (config.tracker.plugin === "linear") {
-    if (!config.epicId) {
+    const effectiveEpicId =
+      config.epicId ??
+      (typeof config.tracker.options?.epicId === "string"
+        ? config.tracker.options.epicId
+        : undefined);
+    if (!effectiveEpicId) {
       errors.push(
         "Linear tracker requires --epic <issue-key-or-uuid> to specify the parent issue. " +
           "Example: ralph-tui run --tracker linear --epic ENG-123",
       );
+    } else if (!config.epicId) {
+      // Normalize: promote tracker options epicId to top-level for session consistency
+      config.epicId = effectiveEpicId;
     }
   }
 

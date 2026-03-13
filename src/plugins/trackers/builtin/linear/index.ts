@@ -238,9 +238,23 @@ export class LinearTrackerPlugin extends BaseTrackerPlugin {
       const issue = await this.client.getIssue(id);
 
       const blockingUuids = await this.client.getBlockingIssueIds(issue.id);
-      const blockingIdentifiers = blockingUuids
-        .map((uuid) => this.issueIdMap.get(uuid))
-        .filter((id): id is string => id !== undefined);
+      const blockingIdentifiers: string[] = [];
+
+      for (const uuid of blockingUuids) {
+        let identifier = this.issueIdMap.get(uuid);
+        if (!identifier) {
+          // Cache miss — resolve the identifier from the API
+          try {
+            const blockerIssue = await this.client.getIssue(uuid);
+            identifier = blockerIssue.identifier;
+            this.issueIdMap.set(uuid, identifier);
+          } catch {
+            // Skip unresolvable dependencies rather than dropping silently
+            continue;
+          }
+        }
+        blockingIdentifiers.push(identifier);
+      }
 
       return await linearIssueToTask(issue, blockingIdentifiers);
     } catch (err) {
@@ -269,18 +283,18 @@ export class LinearTrackerPlugin extends BaseTrackerPlugin {
       return undefined;
     }
 
-    // Prefer in_progress tasks first
-    const inProgress = tasks.find((t) => t.status === 'in_progress');
-    if (inProgress) {
-      return inProgress;
-    }
-
-    // Sort by full ralphPriority (ascending — lower = higher priority)
+    // Sort by full ralphPriority (ascending — lower = higher priority) first,
+    // then prefer in_progress so multiple in-progress tasks are deterministic.
     tasks.sort((a, b) => {
       const aPriority = (a.metadata?.ralphPriority as number) ?? DEFAULT_RALPH_PRIORITY;
       const bPriority = (b.metadata?.ralphPriority as number) ?? DEFAULT_RALPH_PRIORITY;
       return aPriority - bPriority;
     });
+
+    const inProgress = tasks.find((t) => t.status === 'in_progress');
+    if (inProgress) {
+      return inProgress;
+    }
 
     return tasks[0];
   }
